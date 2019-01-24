@@ -1,0 +1,135 @@
+# json-data-structure
+
+## 简介
+
+设计JSON数据结构，方便读取成员值
+
+JSON是一种树形数据结构。
+
+一个JSON，包含一个JSON值类型。
+
+JSON值是一种可变类型，可以是：BOOL值，数值，字符串，数组，对象。
+
+数组的成员类型是JSON值，也就是说一个数组，可能包含0到n个成员，每个成员都是JSON值。
+
+对象由1到n个键值对组成，键值对由键（字符串）和值（即JSON值类型）组成。
+
+
+JSON ::= Value 
+Value ::= BOOLValue | Num | Str | Array | Object 
+Array ::= Value* 
+Object ::= KeyValue+ 
+KeyValue ::= Key Value
+
+## 要求
+
+1. 支持以下接口
+
+typedef struct value JSON;
+typedef struct array array;
+typedef struct object object;
+typedef struct value value;
+typedef struct keyvalue keyvalue;
+
+typedef enum json_e {
+    JSON_NONE,
+    JSON_BOL,
+    JSON_STR,
+    JSON_ARR,
+    JSON_OBJ,
+    JSON_INT,
+} json_e;
+
+struct array {
+    value *elems;
+    U32 count;
+};
+
+struct keyvalue {
+    char *key;
+    value *val;
+};
+
+struct object {
+    keyvalue *kvs;
+    U32 count;
+};
+
+struct value {
+    json_e type;
+    union {
+        int num;
+        BOOL bol;
+        char *str;
+        array arr;
+        object obj;
+    };
+};
+
+
+/**
+ *
+ */
+const JSON *json_get_value(const JSON *json, const char *key)
+{
+    U32 i;
+    assert(json);
+    if (json->type != JSON_OBJ)
+        return NULL;
+    assert(json->obj.count == 0 || json->obj.kvs);
+    for (i = 0; i < json->obj.count; ++i) {
+        if (strcmp(json->obj.kvs[i].key, key) == 0)
+            return json->obj.kvs[i].val;
+    }
+    return NULL;
+}
+
+const JSON *json_get_index(const JSON *json, U32 idx)
+{
+    assert(json);
+    if (json->type != JSON_ARR)
+        return NULL;
+    if (idx >= json->arr.count)
+        return NULL;
+    return json->arr.elems[idx];
+}
+
+JSON *json_new(json_e type)
+{
+    JSON *json = (JSON *)calloc(1, sizeof(JSON));
+    if (!json)
+        return NULL;
+    json->type = type;
+    return json;
+}
+
+int json_get_int(const JSON *json, const char *key, int def);
+BOOL json_get_bool(const JSON *json, const char *key);
+/**
+ * 获取JSON对象中键名为key的值，如果获取不到，则返回缺省值def
+ * 如果json不是对象类型，则返回def
+ * 如果对应的值为其它类型，先将其转换为字符串
+ * 如: 
+ *  json: {"key": "str"}
+ *  json_get_str(json, "key", NULL) = "str"
+ *  json_get_str(json, "noexist", NULL) = NULL
+ *  json_get_str(json, "noexist", "") = ""
+ */
+const char *json_get_str(const JSON *json, const char *key, const char *def);
+
+BOOL json_set_int(JSON *json, const char *key, int val);
+BOOL json_set_bool(JSON *json, const char *key, BOOL val);
+BOOL json_set_str(JSON *json, const char *key, const char *val);
+
+
+//
+//1. 增加键值对；
+//2. 增加数组元素
+//3. 创建JSON
+//4. 释放JSON
+//...
+
+## 思路
+
+1. 
+

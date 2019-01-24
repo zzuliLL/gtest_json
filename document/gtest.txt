@@ -1,0 +1,120 @@
+# json-format
+
+## 简介
+
+把JSON值格式化为YAML格式的字符串
+
+-g -Wall -Wshadow -fprofile-arcs -ftest-coverage
+gcov -o json.o json.c
+valgrind
+
+$ lcov -c -d . -o json_gcov.info 
+$ genhtml -o json json_gcov.info 
+
+## 思路
+
+```cpp
+int json_save(const JSON *json, const char *fname);
+```
+
+```cpp
+const char *str = ""
+"house:\n"
+"  family:\n"
+"    name: Doe\n"
+"    parents:\n"
+"      - John\n"
+"      - Jane\n"
+"    children:\n"
+"      - Paul\n"
+"      - Mark\n"
+"      - Simone\n"
+"  address:\n"
+"    number: 34\n"
+"    street: Main Street\n"
+"    city: Nowheretown\n"
+"    zipcode: 12345\n";
+```
+
+```cpp
+int read_file(string *str, const char *fname)
+{
+    FILE *fp;
+    long len;
+    long realsize;
+    char *buf;
+
+    fp = fopen(fname, "r");
+    if (!fp) {
+        fprintf(stderr, "open file [%s] failed, errno: %d\n"
+            , fname, errno);
+        return -1;
+    }
+    fseek(fp, 0, SEEK_END);
+    len = ftell(fp);
+    if (len <= 0) {
+        fclose(fp);
+        fprintf(stderr, "ftell failed, errno: %d\n", errno);
+        return -1;
+    }
+    fseek(fp, 0, SEEK_SET);
+    buf = (char *)malloc(len + 1);
+    if (!buf) {
+        fclose(fp);
+        fprintf(stderr, "malloc(%d) failed\n", len + 1);
+        return -1;
+    }
+    realsize = fread(buf, 1, len, fp);
+    fclose(fp);
+
+    buf[realsize] = '\0';
+    *str = buf;
+    free(buf);
+    return 0;
+}
+
+TEST_F(json_save, str)
+{
+    JSON *json;
+    string result;
+    const char *expect = "hello world";
+
+    json = json_new_str("hello json");
+    EXPECT_EQ(0, json_save(json, "test.yml"));
+    EXPECT_EQ(0, read_file(&result, "test.yml"));
+
+    ASSERT_EQ(result == expect);
+    json_free(json);
+}
+
+TEST_F(json_save, special_str)
+{
+    JSON *json;
+    string result;
+    const char *expect = "hello\\nworld";
+
+    json = json_new_str("hello\njson");
+    EXPECT_EQ(0, json_save(json, "test.yml"));
+    EXPECT_EQ(0, read_file(&result, "test.yml"));
+
+    ASSERT_EQ(result == expect);
+    json_free(json);
+}
+
+TEST_F(json_save, obj)
+{
+    JSON *json;
+    string result;
+    const char *expect = "key: hello\nname: world\n";
+
+    json = json_new(JSON_OBJ);
+    json_set_str(json, "key", "hello");
+    json_set_str(json, "name", "world");
+
+    EXPECT_EQ(0, json_save(json, "test-obj.yml"));
+    EXPECT_EQ(0, read_file(&result, "test-obj.yml"));
+    ASSERT_EQ(result == expect);
+    json_free(json);
+}
+```
+
